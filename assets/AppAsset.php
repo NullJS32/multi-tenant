@@ -25,6 +25,7 @@ class AppAsset extends AssetBundle
     public $js = [
     ];
     public $depends = [
+        'rmrevin\yii\fontawesome\CdnFreeAssetBundle',
         'yii\web\YiiAsset',
         'yii\bootstrap4\BootstrapAsset',
     ];

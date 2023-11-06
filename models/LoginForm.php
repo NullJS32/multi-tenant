@@ -6,58 +6,56 @@ use Yii;
 use yii\base\Model;
 
 /**
- * LoginForm is the model behind the login form.
+ * Модель формы входа (LoginForm).
  *
  * @property-read User|null $user
- *
  */
 class LoginForm extends Model
 {
-    public $username;
-    public $password;
-    public $rememberMe = true;
+    public ?string $username = null;
+    public ?string $password = null;
+    public ?bool $rememberMe = true;
 
-    private $_user = false;
-
+    private ?User $_user = null;
 
     /**
-     * @return array the validation rules.
+     * @return array Правила валидации данных.
      */
-    public function rules()
+    public function rules(): array
     {
         return [
-            // username and password are both required
+            // username и password обязательны для заполнения
             [['username', 'password'], 'required'],
-            // rememberMe must be a boolean value
+            // rememberMe должен быть булевым значением
             ['rememberMe', 'boolean'],
-            // password is validated by validatePassword()
+            // Пароль проверяется методом validatePassword()
             ['password', 'validatePassword'],
         ];
     }
 
     /**
-     * Validates the password.
-     * This method serves as the inline validation for password.
+     * Проверяет пароль.
+     * Этот метод служит для встроенной валидации пароля.
      *
-     * @param string $attribute the attribute currently being validated
-     * @param array $params the additional name-value pairs given in the rule
+     * @param string $attribute атрибут, который в данный момент проверяется
      */
-    public function validatePassword($attribute, $params)
+    public function validatePassword(string $attribute): void
     {
         if (!$this->hasErrors()) {
             $user = $this->getUser();
 
             if (!$user || !$user->validatePassword($this->password)) {
-                $this->addError($attribute, 'Incorrect username or password.');
+                $this->addError($attribute, 'Неверное имя пользователя или пароль.');
             }
         }
     }
 
     /**
-     * Logs in a user using the provided username and password.
-     * @return bool whether the user is logged in successfully
+     * Авторизует пользователя с использованием предоставленного имени пользователя и пароля.
+     *
+     * @return bool успешно ли пользователь авторизован
      */
-    public function login()
+    public function login(): bool
     {
         if ($this->validate()) {
             return Yii::$app->user->login($this->getUser(), $this->rememberMe ? 3600*24*30 : 0);
@@ -66,13 +64,13 @@ class LoginForm extends Model
     }
 
     /**
-     * Finds user by [[username]]
+     * Находит пользователя по [[username]]
      *
      * @return User|null
      */
-    public function getUser()
+    public function getUser(): ?User
     {
-        if ($this->_user === false) {
+        if ($this->_user === null) {
             $this->_user = User::findByUsername($this->username);
         }
 

@@ -13,9 +13,31 @@ $config = [
         '@npm'   => '@vendor/npm-asset',
         '@tests' => '@app/tests',
     ],
+    'controllerMap' => [
+        'migrate' => [
+            'class' => 'yii\console\controllers\MigrateController',
+            'migrationPath' => [
+                '@app/migrations',
+                '@yii/rbac/migrations',
+            ]
+        ]
+    ],
     'components' => [
         'cache' => [
             'class' => 'yii\caching\FileCache',
+        ],
+        'userDbLocator' => [
+            'class' => 'app\components\UserDbLocator',
+            'connection' => [
+                'class' => 'yii\db\Connection',
+                'dsn' => 'mysql:host=localhost;dbname=user_{id}',
+                'username' => 'root',
+                'password' => '',
+                'charset' => 'utf8',
+            ],
+        ],
+        'authManager' => [
+            'class' => 'yii\rbac\DbManager',
         ],
         'log' => [
             'targets' => [

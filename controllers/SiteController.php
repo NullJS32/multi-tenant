@@ -2,24 +2,28 @@
 
 namespace app\controllers;
 
+use app\models\User;
 use Yii;
+use yii\base\InvalidConfigException;
 use yii\filters\AccessControl;
 use yii\web\Controller;
-use yii\web\Response;
-use yii\filters\VerbFilter;
 use app\models\LoginForm;
-use app\models\ContactForm;
+use app\models\SignupForm;
+use yii\web\Response;
 
+/**
+ * SiteController отвечает за управление действиями на главной странице и авторизацией.
+ */
 class SiteController extends Controller
 {
     /**
      * {@inheritdoc}
      */
-    public function behaviors()
+    public function behaviors(): array
     {
         return [
             'access' => [
-                'class' => AccessControl::className(),
+                'class' => AccessControl::class,
                 'only' => ['logout'],
                 'rules' => [
                     [
@@ -29,47 +33,37 @@ class SiteController extends Controller
                     ],
                 ],
             ],
-            'verbs' => [
-                'class' => VerbFilter::className(),
-                'actions' => [
-                    'logout' => ['post'],
-                ],
-            ],
         ];
     }
 
     /**
      * {@inheritdoc}
      */
-    public function actions()
+    public function actions(): array
     {
         return [
             'error' => [
                 'class' => 'yii\web\ErrorAction',
             ],
-            'captcha' => [
-                'class' => 'yii\captcha\CaptchaAction',
-                'fixedVerifyCode' => YII_ENV_TEST ? 'testme' : null,
-            ],
         ];
     }
 
     /**
-     * Displays homepage.
+     * Отображает главную страницу.
      *
      * @return string
      */
-    public function actionIndex()
+    public function actionIndex(): string
     {
         return $this->render('index');
     }
 
     /**
-     * Login action.
+     * Отображает страницу входа.
      *
-     * @return Response|string
+     * @return string|Response
      */
-    public function actionLogin()
+    public function actionLogin(): string|Response
     {
         if (!Yii::$app->user->isGuest) {
             return $this->goHome();
@@ -80,49 +74,76 @@ class SiteController extends Controller
             return $this->goBack();
         }
 
-        $model->password = '';
         return $this->render('login', [
             'model' => $model,
         ]);
     }
 
     /**
-     * Logout action.
+     * Разлогинивает пользователя.
      *
      * @return Response
      */
-    public function actionLogout()
+    public function actionLogout(): Response
     {
         Yii::$app->user->logout();
-
         return $this->goHome();
     }
 
     /**
-     * Displays contact page.
+     * Обрабатывает регистрацию нового пользователя.
      *
-     * @return Response|string
+     * @throws InvalidConfigException
+     * @return string|Response
      */
-    public function actionContact()
+    public function actionSignup(): string|Response
     {
-        $model = new ContactForm();
-        if ($model->load(Yii::$app->request->post()) && $model->contact(Yii::$app->params['adminEmail'])) {
-            Yii::$app->session->setFlash('contactFormSubmitted');
+        $model = new SignupForm();
 
-            return $this->refresh();
+        if ($model->load(Yii::$app->request->post()) && $model->signup()) {
+            // Регистрация прошла успешно
+            Yii::$app->session->setFlash('success', 'Registration was successful. Please log in.');
+
+            // Найдем пользователя по зарегистрированному логину
+            $user = User::findByUsername($model->username);
+
+            if ($user) {
+                $userId = $user->id;
+                $userDatabaseName = "user_{$userId}";
+
+                // Создаем базу данных для этого пользователя
+                $createDatabaseSql = "CREATE DATABASE {$userDatabaseName}";
+                Yii::$app->db->createCommand($createDatabaseSql)->execute();
+
+                Yii::$app->userDbLocator->switchId($userId);
+
+                Yii::$app->get('userDbLocator')->getDb()->createCommand("
+                    CREATE TABLE `orders` (
+                        `id` INT AUTO_INCREMENT PRIMARY KEY,
+                        `customer_id` INT NOT NULL,
+                        `order_date` DATE NOT NULL,
+                        `total_amount` DECIMAL(10, 2) NOT NULL
+                    )
+                ")->execute();
+
+                Yii::$app->get('userDbLocator')->getDb()->createCommand("
+                    CREATE TABLE `customers` (
+                        `id` INT AUTO_INCREMENT PRIMARY KEY,
+                        `name` VARCHAR(255) NOT NULL,
+                        `email` VARCHAR(255) NOT NULL,
+                        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                    )
+                ")->execute();
+
+                Yii::$app->userDbLocator->switchId(null);
+            }
+
+            return $this->goHome();
         }
-        return $this->render('contact', [
+
+        return $this->render('signup', [
             'model' => $model,
         ]);
-    }
-
-    /**
-     * Displays about page.
-     *
-     * @return string
-     */
-    public function actionAbout()
-    {
-        return $this->render('about');
     }
 }
