@@ -16,12 +16,25 @@ $config = [
             // !!! insert a secret key in the following (if it is empty) - this is required by cookie validation
             'cookieValidationKey' => 'fktrfaZbzmUA99_3fzFY_VI92JDargPI',
         ],
+        'authManager' => [
+            'class' => 'yii\rbac\DbManager',
+        ],
         'cache' => [
             'class' => 'yii\caching\FileCache',
         ],
         'user' => [
             'identityClass' => 'app\models\User',
             'enableAutoLogin' => true,
+        ],
+        'userDbLocator' => [
+            'class' => 'app\components\UserDbLocator',
+            'connection' => [
+                'class' => 'yii\db\Connection',
+                'dsn' => 'mysql:host=localhost;dbname=user_{id}',
+                'username' => 'root',
+                'password' => '',
+                'charset' => 'utf8',
+            ],
         ],
         'errorHandler' => [
             'errorAction' => 'site/error',
